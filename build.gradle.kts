@@ -1,6 +1,6 @@
 plugins {
     id("net.kyori.indra") version "2.0.2"
-    id("net.kyori.indra.checkstyle") version "2.0.2"
+    //id("net.kyori.indra.checkstyle") version "2.0.2"
     id("com.github.johnrengelman.shadow") version "7.0.0"
 }
 

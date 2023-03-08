@@ -171,6 +171,10 @@ public final class Messages {
         return format("Removed the glow effect to your item!", MSG_COLOR);
     }
 
+    public static Component cannotPlaceLoreItems() {
+        return format("Lore items can't be placed on the ground!", ERR_COLOR);
+    }
+
     public static Component separator(@NotNull final TextColor color) {
         Component end = Component.text(ELLIPSIS, color, TextDecoration.STRIKETHROUGH);
         Component divider = Component.text(LEFT_ARROW + RIGHT_ARROW, color, TextDecoration.BOLD);

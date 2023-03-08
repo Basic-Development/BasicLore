@@ -1,5 +1,6 @@
 package com.vestriamc.basiclore.commands;
 
+import com.vestriamc.basiclore.BasicLore;
 import com.vestriamc.basiclore.utils.FormatUtil;
 import com.vestriamc.basiclore.utils.Messages;
 import net.kyori.adventure.text.Component;
@@ -14,6 +15,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Year;
@@ -94,6 +97,10 @@ public final class LoreCommand implements CommandExecutor {
 
                 lore.add(formattedLoreLine);
                 meta.setLore(lore);
+
+                PersistentDataContainer pdc = meta.getPersistentDataContainer();
+                pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
+
                 item.setItemMeta(meta);
                 sender.sendMessage(Messages.infoAddedLore(formattedLoreLine));
                 return true;
@@ -183,6 +190,10 @@ public final class LoreCommand implements CommandExecutor {
 
                 String formattedDisplayName = FormatUtil.formatInputLegacy(unformattedDisplayName);
                 meta.setDisplayName(formattedDisplayName);
+
+                PersistentDataContainer pdc = meta.getPersistentDataContainer();
+                pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
+
                 item.setItemMeta(meta);
 
                 player.sendMessage(Messages.infoRenamedItem(formattedDisplayName));
@@ -214,6 +225,11 @@ public final class LoreCommand implements CommandExecutor {
 
                 item.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
                 item.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+
+                PersistentDataContainer pdc = meta.getPersistentDataContainer();
+                pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
+
+                item.setItemMeta(meta);
 
                 player.sendMessage(Messages.infoAddedGlowing());
 
@@ -262,6 +278,10 @@ public final class LoreCommand implements CommandExecutor {
                     String formattedLoreLine = FormatUtil.formatInputLegacy(unformattedLoreLine);
                     itemLore.add(formattedLoreLine);
                     im.setLore(itemLore);
+
+                    PersistentDataContainer pdc = meta.getPersistentDataContainer();
+                    pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
+
                     item.setItemMeta(im);
 
                     player.sendMessage(Messages.infoAddedLore(formattedLoreLine));
