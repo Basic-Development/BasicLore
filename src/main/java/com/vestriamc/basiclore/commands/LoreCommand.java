@@ -16,15 +16,12 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.time.Year;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 @SuppressWarnings("deprecation")
-public class LoreCommand implements CommandExecutor {
+public final class LoreCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull final CommandSender sender,
                              @NotNull final Command command,
@@ -37,13 +34,13 @@ public class LoreCommand implements CommandExecutor {
         }
 
         if (args.length == 0) {
-            help(player);
+            this.help(player);
             return true;
         }
 
         String subcommand = args[0];
         if (subcommand.equalsIgnoreCase("help") || subcommand.equalsIgnoreCase("?")) {
-            help(player);
+            this.help(player);
             return true;
         }
 
@@ -124,11 +121,11 @@ public class LoreCommand implements CommandExecutor {
                     sender.sendMessage(Messages.errNoLoreAtLine(lineToEdit));
                     return true;
                 }
-                String oldLoreLine = lore.get(lineToEdit-1);
-                lore.remove(lineToEdit-1);
+                String oldLoreLine = lore.get(lineToEdit - 1);
+                lore.remove(lineToEdit - 1);
                 meta.setLore(lore);
                 item.setItemMeta(meta);
-                sender.sendMessage(Messages.infoRemovedLore(lineToEdit,oldLoreLine));
+                sender.sendMessage(Messages.infoRemovedLore(lineToEdit, oldLoreLine));
                 return true;
 
             }
@@ -163,8 +160,8 @@ public class LoreCommand implements CommandExecutor {
                 }
                 String formattedLoreLine = FormatUtil.formatInputLegacy(unformattedLoreLine);
 
-                String oldLoreLine = lore.get(lineToEdit-1);
-                lore.set(lineToEdit-1, formattedLoreLine);
+                String oldLoreLine = lore.get(lineToEdit - 1);
+                lore.set(lineToEdit - 1, formattedLoreLine);
                 meta.setLore(lore);
                 item.setItemMeta(meta);
                 sender.sendMessage(Messages.infoEditedLore(oldLoreLine, formattedLoreLine));
@@ -287,7 +284,7 @@ public class LoreCommand implements CommandExecutor {
 
             }
             default -> {
-                help(player);
+                this.help(player);
             }
         }
         return true;

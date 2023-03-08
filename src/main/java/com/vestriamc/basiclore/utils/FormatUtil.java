@@ -9,7 +9,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class FormatUtil {
+public final class FormatUtil {
+
+    private FormatUtil() {}
 
     static final char COLOR_CHAR = '\u00A7';
 
@@ -26,16 +28,18 @@ public class FormatUtil {
 
     // Takes in a string containing color formatting in many possible formats.
     // Returns a Component with the text styled according to the formatting of the String input.
-    public static Component formatInput(String unformattedString) {
+    public static Component formatInput(@NotNull final String unformattedString) {
         return LegacyComponentSerializer.legacyAmpersand().deserialize(unformattedString)
                 .decoration(TextDecoration.ITALIC, false);
     }
 
-    public static String formatInputLegacy(String unformattedString) {
+    public static String formatInputLegacy(@NotNull final String unformattedString) {
         return ChatColor.translateAlternateColorCodes('&', translateHexColorCodes("&#", "", unformattedString));
     }
 
-    public static String translateHexColorCodes(String startTag, String endTag, String message) {
+    public static String translateHexColorCodes(@NotNull final String startTag,
+                                                @NotNull final String endTag,
+                                                @NotNull final String message) {
         final Pattern hexPattern = Pattern.compile(startTag + "([A-Fa-f0-9]{6})" + endTag);
         Matcher matcher = hexPattern.matcher(message);
         StringBuilder b = new StringBuilder(message.length() + 4 * 8);

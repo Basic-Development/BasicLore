@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LoreCommandCompletion implements TabCompleter {
+public final class LoreCommandCompletion implements TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull final CommandSender sender,
                                                 @NotNull final Command command,
