@@ -1,4 +1,12 @@
-name: Template
-version: 0.1-SNAPSHOT
-main: com.vestriamc.template.TemplatePlugin
-api-version: 1.18
+name: BaiscLore
+version: 2.0
+main: com.vestriamc.basiclore.BasicLore
+api-version: 1.19
+author: GeneralSarcasam
+commands:
+  lore:
+    description: Base command for applying, removing, and editing lore on items
+    permission-message: You don't have permission to perform this command!
+    permission: lore.help
+    usage: /lore help
+    aliases: [basiclore]
