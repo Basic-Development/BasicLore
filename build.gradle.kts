@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.vestriamc"
-version = "2.0"
+version = "3.0"
 
 repositories {
     mavenCentral()
@@ -14,9 +14,10 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper", "paper-api", "1.19.3-R0.1-SNAPSHOT")
-    implementation("net.kyori:adventure-api:4.11.0")
-    implementation("net.kyori:adventure-text-minimessage:4.11.0")
+    compileOnly("io.papermc.paper", "paper-api", "1.20.4-R0.1-SNAPSHOT")
+
+    implementation("cloud.commandframework", "cloud-paper", "1.8.4")
+    implementation("cloud.commandframework", "cloud-minecraft-extras", "1.8.4")
 }
 
 tasks {
@@ -31,7 +32,10 @@ tasks {
     }
 
     processResources {
-        expand("version" to rootProject.version)
+        expand(
+            "version" to rootProject.version,
+            "name" to project.name
+        )
     }
 
     shadowJar {

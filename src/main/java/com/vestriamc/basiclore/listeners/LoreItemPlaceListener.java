@@ -2,6 +2,7 @@ package com.vestriamc.basiclore.listeners;
 
 import com.vestriamc.basiclore.BasicLore;
 import com.vestriamc.basiclore.utils.Messages;
+import org.bukkit.NamespacedKey;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -12,7 +13,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.jetbrains.annotations.NotNull;
 
 
-public final class DisallowPlacingLoreItems implements Listener {
+public final class LoreItemPlaceListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public static void onBlockPlaceEvent(@NotNull final BlockPlaceEvent event) {
@@ -20,7 +21,8 @@ public final class DisallowPlacingLoreItems implements Listener {
         ItemMeta meta = item.getItemMeta();
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
 
-        if (pdc.has(BasicLore.loreKey)) {
+        if (pdc.has(BasicLore.loreKey) || pdc.has(NamespacedKey.fromString("vestriaguilds:track"))
+                || pdc.has(NamespacedKey.fromString("items-gen:dust"))) {
             event.getPlayer().sendMessage(Messages.cannotPlaceLoreItems());
             event.setCancelled(true);
         }

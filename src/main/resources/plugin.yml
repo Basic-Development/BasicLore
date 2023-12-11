@@ -1,12 +1,5 @@
-name: BaiscLore
-version: 2.0
+name: $name
+version: $version
 main: com.vestriamc.basiclore.BasicLore
-api-version: 1.19
+api-version: 1.20
 author: GeneralSarcasam
-commands:
-  lore:
-    description: Base command for applying, removing, and editing lore on items
-    permission-message: You don't have permission to perform this command!
-    permission: lore.help
-    usage: /lore help
-    aliases: [basiclore]
