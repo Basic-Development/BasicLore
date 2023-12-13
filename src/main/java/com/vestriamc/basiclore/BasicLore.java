@@ -5,7 +5,8 @@ import cloud.commandframework.bukkit.CloudBukkitCapabilities;
 import cloud.commandframework.execution.AsynchronousCommandExecutionCoordinator;
 import cloud.commandframework.paper.PaperCommandManager;
 import com.vestriamc.basiclore.commands.LoreCommand;
-import com.vestriamc.basiclore.listeners.LoreItemPlaceListener;
+import com.vestriamc.basiclore.listeners.BlockPlaceEventListener;
+import com.vestriamc.basiclore.listeners.EntityShootBowEventListener;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
@@ -39,7 +40,8 @@ public final class BasicLore extends JavaPlugin {
 
         //register listeners
         PluginManager pm = this.getServer().getPluginManager();
-        pm.registerEvents(new LoreItemPlaceListener(), this);
+        pm.registerEvents(new BlockPlaceEventListener(), this);
+        pm.registerEvents(new EntityShootBowEventListener(), this);
 
     }
 

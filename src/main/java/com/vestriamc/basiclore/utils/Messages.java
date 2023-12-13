@@ -14,8 +14,6 @@ import java.util.List;
 
 public final class Messages {
 
-    private Messages() {}
-
     public static final TextColor MSG_COLOR = TextColor.color(0x50ffc0);
     public static final TextColor ERR_COLOR = TextColor.color(0xff002f);
     private static final int REPEATED_SEPARATOR_LENGTH = 12;
@@ -27,6 +25,8 @@ public final class Messages {
                     + "<bold><gradient:#50ffc0:#c050ff>BasicLore</gradient></bold>"
                     + "<aqua>]</aqua> "
     );
+    private Messages() {
+    }
 
     private static Component format(@NotNull final String message,
                                     @NotNull final TextColor color) {
@@ -38,10 +38,10 @@ public final class Messages {
     }
 
     private static Component formatNoPrefix(@NotNull final String message,
-                                    @NotNull final TextColor color) {
+                                            @NotNull final TextColor color) {
         return Component.text(message, color)
-                        .decoration(TextDecoration.ITALIC, false)
-                        .decoration(TextDecoration.BOLD, false);
+                .decoration(TextDecoration.ITALIC, false)
+                .decoration(TextDecoration.BOLD, false);
     }
 
     public static Component errNoPermission() {
@@ -85,8 +85,8 @@ public final class Messages {
         }
         help.add(0,
                 format(">>> Commands <<<", MSG_COLOR)
-                .decoration(TextDecoration.BOLD, true)
-                .decoration(TextDecoration.ITALIC, false)
+                        .decoration(TextDecoration.BOLD, true)
+                        .decoration(TextDecoration.ITALIC, false)
         );
 
         return help;
@@ -254,5 +254,11 @@ public final class Messages {
 
     public static Component infoUnHidEffects() {
         return format("Removed the HIDE_ITEM_SPECIFICS flag from your item", MSG_COLOR);
+    }
+
+    public static Component cannotFireLoreArrows() {
+        return format("Warning! Lore prevented you from shooting a lore item as a projectile! "
+                        + "Please store your lore items, or reorganize your inventory so another projectile is fired instead!",
+                ERR_COLOR);
     }
 }

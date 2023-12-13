@@ -10,13 +10,13 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
-import org.jetbrains.annotations.NotNull;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.framework.qual.DefaultQualifier;
 
-
-public final class LoreItemPlaceListener implements Listener {
-
+@DefaultQualifier(NonNull.class)
+public final class BlockPlaceEventListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
-    public static void onBlockPlaceEvent(@NotNull final BlockPlaceEvent event) {
+    public static void onBlockPlaceEvent(final BlockPlaceEvent event) {
         ItemStack item = event.getItemInHand();
         ItemMeta meta = item.getItemMeta();
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
