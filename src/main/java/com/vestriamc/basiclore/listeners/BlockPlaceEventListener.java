@@ -16,7 +16,7 @@ import org.checkerframework.framework.qual.DefaultQualifier;
 @DefaultQualifier(NonNull.class)
 public final class BlockPlaceEventListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
-    public static void onBlockPlaceEvent(final BlockPlaceEvent event) {
+    public void onBlockPlaceEvent(final BlockPlaceEvent event) {
         ItemStack item = event.getItemInHand();
         ItemMeta meta = item.getItemMeta();
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
