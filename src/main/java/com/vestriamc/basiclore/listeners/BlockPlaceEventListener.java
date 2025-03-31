@@ -21,7 +21,10 @@ public final class BlockPlaceEventListener implements Listener {
         ItemMeta meta = item.getItemMeta();
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
 
-        if (pdc.has(BasicLore.loreKey) || pdc.has(NamespacedKey.fromString("vestriaguilds:track"))
+        NamespacedKey misspelled = NamespacedKey.fromString("baisclore:lore_key");
+
+        if (pdc.has(BasicLore.loreKey) || pdc.has(misspelled)
+                || pdc.has(NamespacedKey.fromString("vestriaguilds:track"))
                 || pdc.has(NamespacedKey.fromString("items-gen:dust"))) {
             event.getPlayer().sendMessage(Messages.cannotPlaceLoreItems());
             event.setCancelled(true);

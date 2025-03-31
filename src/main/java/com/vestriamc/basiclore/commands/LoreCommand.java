@@ -1,23 +1,9 @@
 package com.vestriamc.basiclore.commands;
 
-import cloud.commandframework.Command;
-import cloud.commandframework.CommandManager;
-import cloud.commandframework.arguments.standard.BooleanArgument;
-import cloud.commandframework.arguments.standard.IntegerArgument;
-import cloud.commandframework.arguments.standard.StringArgument;
-import cloud.commandframework.context.CommandContext;
-import cloud.commandframework.execution.postprocessor.CommandPostprocessingContext;
-import cloud.commandframework.execution.postprocessor.CommandPostprocessor;
-import cloud.commandframework.meta.CommandMeta;
-import cloud.commandframework.minecraft.extras.MinecraftHelp;
-import cloud.commandframework.services.types.ConsumerService;
 import com.vestriamc.basiclore.BasicLore;
 import com.vestriamc.basiclore.utils.Messages;
-import io.leangen.geantyref.TypeToken;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import org.bukkit.command.CommandSender;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -25,23 +11,28 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.framework.qual.DefaultQualifier;
+import org.incendo.cloud.Command;
+import org.incendo.cloud.CommandManager;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.minecraft.extras.MinecraftHelp;
+import org.incendo.cloud.paper.util.sender.PlayerSource;
+import org.incendo.cloud.paper.util.sender.Source;
+import org.incendo.cloud.parser.standard.BooleanParser;
+import org.incendo.cloud.parser.standard.IntegerParser;
+import org.incendo.cloud.parser.standard.StringParser;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static net.kyori.adventure.text.format.TextDecoration.ITALIC;
 import static net.kyori.adventure.text.format.TextDecoration.State.FALSE;
 
 @DefaultQualifier(NonNull.class)
 public final class LoreCommand {
-
-    private static final TypeToken<Boolean> BOOLEAN = new TypeToken<>() {
-    };
-    private static final CommandMeta.Key<Boolean> REQUIRES_HELD_ITEM = CommandMeta.Key.of(BOOLEAN, "requires_held_item");
-
 
     private static final LegacyComponentSerializer SERIALIZER = LegacyComponentSerializer
             .builder()
@@ -50,48 +41,51 @@ public final class LoreCommand {
             .hexCharacter('#')
             .build();
 
-    public void register(final CommandManager<CommandSender> manager) {
+    public void register(final CommandManager<Source> manager) {
 
-        Command.Builder<CommandSender> baseCommand = manager
-                .commandBuilder("lore")
-                .senderType(Player.class)
-                .meta(REQUIRES_HELD_ITEM, true);
+        Command.Builder<Source> baseCommand = manager
+                .commandBuilder("lore");
 
         manager.command(
                 baseCommand
+                        .senderType(PlayerSource.class)
                         .literal("add")
                         .permission("lore.add")
-                        .argument(StringArgument.greedy("text"))
+                        .required("text", StringParser.greedyStringParser())
                         .handler(this::handleAdd)
         );
 
         manager.command(
                 baseCommand
+                        .senderType(PlayerSource.class)
                         .literal("remove")
                         .permission("lore.remove")
-                        .argument(IntegerArgument.of("line"))
+                        .required("line", IntegerParser.integerParser())
                         .handler(this::handleRemove)
         );
 
         manager.command(
                 baseCommand
+                        .senderType(PlayerSource.class)
                         .literal("edit")
                         .permission("lore.edit")
-                        .argument(IntegerArgument.of("line"))
-                        .argument(StringArgument.greedy("text"))
+                        .required("line", IntegerParser.integerParser())
+                        .required("text", StringParser.greedyStringParser())
                         .handler(this::handleEdit)
         );
 
         manager.command(
                 baseCommand
+                        .senderType(PlayerSource.class)
                         .literal("rename")
                         .permission("lore.rename")
-                        .argument(StringArgument.greedy("text"))
+                        .required("text", StringParser.greedyStringParser())
                         .handler(this::handleRename)
         );
 
         manager.command(
                 baseCommand
+                        .senderType(PlayerSource.class)
                         .literal("removename", "unname")
                         .permission("lore.unname")
                         .handler(this::handleRemoveName)
@@ -99,46 +93,50 @@ public final class LoreCommand {
 
         manager.command(
                 baseCommand
+                        .senderType(PlayerSource.class)
                         .literal("glow")
-                        .argument(BooleanArgument.optional("value"))
+                        .optional("value", BooleanParser.booleanParser())
                         .permission("lore.glow")
                         .handler(this::handleGlow)
         );
 
         manager.command(
                 baseCommand
+                        .senderType(PlayerSource.class)
                         .literal("hideeffects")
-                        .argument(BooleanArgument.optional("value"))
+                        .optional("value", BooleanParser.booleanParser())
                         .permission("lore.hideeffects")
                         .handler(this::handleEffects)
         );
 
         manager.command(
                 baseCommand
+                        .senderType(PlayerSource.class)
                         .literal("tag")
-                        .argument(StringArgument.optional("tag", StringArgument.StringMode.GREEDY))
+                        .optional("tag", StringParser.greedyStringParser())
                         .permission("lore.tag")
                         .handler(this::handleTag)
         );
 
-        MinecraftHelp<CommandSender> minecraftHelp = MinecraftHelp.createNative(
-                "/commands help",
-                manager
+        MinecraftHelp<Source> minecraftHelp = MinecraftHelp.create(
+                "/lore help",
+                manager,
+                Source::source
         );
 
         manager.command(
                 baseCommand
                         .literal("help")
                         .permission("message.command.help")
-                        .handler((ctx) -> minecraftHelp.queryCommands("", ctx.getSender()))
+                        .handler((ctx) -> minecraftHelp.queryCommands("", ctx.sender()))
         );
 
 
     }
 
-    private void handleAdd(final CommandContext<CommandSender> context) {
+    private void handleAdd(final CommandContext<PlayerSource> context) {
 
-        Player player = (Player) context.getSender();
+        Player player = context.sender().source();
 
         //Ensure the player is holding an item in their hand
         ItemStack item = player.getInventory().getItemInMainHand();
@@ -147,10 +145,7 @@ public final class LoreCommand {
         String inputText = context.get("text");
         Component line = SERIALIZER.deserialize(inputText).decorationIfAbsent(ITALIC, FALSE);
 
-        @Nullable List<Component> lore = meta.lore();
-        if (lore == null) {
-            lore = new ArrayList<>();
-        }
+        List<Component> lore = Objects.requireNonNullElse(meta.lore(), new ArrayList<>());
 
         lore.add(line);
 
@@ -164,20 +159,17 @@ public final class LoreCommand {
 
     }
 
-    private void handleRemove(final CommandContext<CommandSender> context) {
+    private void handleRemove(final CommandContext<PlayerSource> context) {
 
-        Player player = (Player) context.getSender();
+        Player player = context.sender().source();
+
 
         int lineNumber = context.get("line");
 
         ItemStack item = player.getInventory().getItemInMainHand();
         ItemMeta meta = item.getItemMeta();
 
-        @Nullable List<Component> lore = meta.lore();
-        if (lore == null) {
-            player.sendMessage(Messages.errNoLoreToRemove());
-            return;
-        }
+        List<Component> lore = Objects.requireNonNullElse(meta.lore(), new ArrayList<>());
 
         int numLines = lore.size();
         if (lineNumber < 0 || lineNumber > numLines) {
@@ -194,17 +186,14 @@ public final class LoreCommand {
 
     }
 
-    private void handleEdit(final CommandContext<CommandSender> context) {
+    private void handleEdit(final CommandContext<PlayerSource> context) {
 
-        Player player = (Player) context.getSender();
+        Player player = context.sender().source();
 
         ItemStack item = player.getInventory().getItemInMainHand();
         ItemMeta meta = item.getItemMeta();
-        @Nullable List<Component> lore = meta.lore();
-        if (lore == null) {
-            player.sendMessage(Messages.errNoLoreToEdit());
-            return;
-        }
+        List<Component> lore = Objects.requireNonNullElse(meta.lore(), new ArrayList<>());
+
 
         int line = context.get("line");
         String newText = context.get("text");
@@ -226,9 +215,9 @@ public final class LoreCommand {
     }
 
     //renames an item and also tags it as a Lore item, so that it can be prevented from being placed.
-    private void handleRename(final CommandContext<CommandSender> context) {
+    private void handleRename(final CommandContext<PlayerSource> context) {
 
-        Player player = (Player) context.getSender();
+        Player player = context.sender().source();
 
         ItemStack item = player.getInventory().getItemInMainHand();
         ItemMeta meta = item.getItemMeta();
@@ -247,9 +236,9 @@ public final class LoreCommand {
 
     }
 
-    private void handleRemoveName(final CommandContext<CommandSender> context) {
+    private void handleRemoveName(final CommandContext<PlayerSource> context) {
 
-        Player player = (Player) context.getSender();
+        Player player = context.sender().source();
 
         ItemStack item = player.getInventory().getItemInMainHand();
         ItemMeta meta = item.getItemMeta();
@@ -268,9 +257,9 @@ public final class LoreCommand {
     }
 
     //Adds Unbreaking 1 and hides enchants on an item, and tags it as a Lore item.
-    private void handleGlow(final CommandContext<CommandSender> context) {
+    private void handleGlow(final CommandContext<PlayerSource> context) {
 
-        Player player = (Player) context.getSender();
+        Player player = context.sender().source();
         ItemStack item = player.getInventory().getItemInMainHand();
         ItemMeta meta = item.getItemMeta();
 
@@ -281,17 +270,17 @@ public final class LoreCommand {
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
             pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
 
-            item.setItemMeta(meta);
+            meta.setEnchantmentGlintOverride(true);
 
-            item.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
-            item.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            item.setItemMeta(meta);
 
             player.sendMessage(Messages.infoAddedGlowing());
 
         } else {
 
-            item.removeEnchantment(Enchantment.DURABILITY);
-            item.removeItemFlags(ItemFlag.HIDE_ENCHANTS);
+
+            meta.setEnchantmentGlintOverride(false);
+            item.setItemMeta(meta);
 
             player.sendMessage(Messages.infoRemovedGlowing());
 
@@ -299,42 +288,39 @@ public final class LoreCommand {
 
     }
 
-    private void handleEffects(final CommandContext<CommandSender> context) {
+    private void handleEffects(final CommandContext<PlayerSource> context) {
 
-        Player player = (Player) context.getSender();
+        Player player = context.sender().source();
         ItemStack item = player.getInventory().getItemInMainHand();
 
         boolean doHideEffects = context.getOrDefault("value", true);
 
         if (doHideEffects) {
-            item.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
+            item.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
             player.sendMessage(Messages.infoHidEffects());
 
         } else {
-            item.removeItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
+            item.removeItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
             player.sendMessage(Messages.infoUnHidEffects());
 
         }
 
     }
 
-    private void handleTag(final CommandContext<CommandSender> context) {
+    private void handleTag(final CommandContext<PlayerSource> context) {
 
-        Player player = (Player) context.getSender();
+        Player player = context.sender().source();
 
         ItemStack item = player.getInventory().getItemInMainHand();
         ItemMeta meta = item.getItemMeta();
-        @Nullable List<Component> lore = meta.lore();
-        if (lore == null) {
-            lore = new ArrayList<>();
-        }
+        List<Component> lore = Objects.requireNonNullElse(meta.lore(), new ArrayList<>());
 
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
 
         lore.add(Messages.separator());
 
-        String tagString = context.getOrDefault("tag", "&#720077&lVestria " + Year.now());
+        String tagString = context.getOrDefault("tag", "&#efb8ff&lVestria " + Year.now());
         Component tag = SERIALIZER.deserialize(tagString).decorationIfAbsent(ITALIC, FALSE);
 
         lore.add(tag);
@@ -344,36 +330,6 @@ public final class LoreCommand {
         player.sendMessage(Messages.infoAddedLore(Messages.separator()));
         player.sendMessage(Messages.infoAddedLore(tag));
 
-    }
-
-    public static final class HeldItemPostProcessor implements CommandPostprocessor<CommandSender> {
-
-        @Override
-        public void accept(final CommandPostprocessingContext<CommandSender> context) {
-            final Command<CommandSender> command = context.getCommand();
-            if (!command.getCommandMeta().getOrDefault(REQUIRES_HELD_ITEM, false)) {
-                return;
-            }
-
-            Player player = (Player) context.getCommandContext().getSender();
-
-            ItemStack item = player.getInventory().getItemInMainHand();
-
-            if (item.isEmpty()) {
-
-                player.sendMessage(Messages.errNoHeldItem());
-                ConsumerService.interrupt();
-
-            }
-
-            if (item.getItemMeta() == null) {
-
-                player.sendMessage(Messages.errNoItemMeta());
-                ConsumerService.interrupt();
-
-            }
-
-        }
     }
 
 }

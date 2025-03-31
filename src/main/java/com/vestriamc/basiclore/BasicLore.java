@@ -1,17 +1,17 @@
 package com.vestriamc.basiclore;
 
-import cloud.commandframework.CommandManager;
-import cloud.commandframework.bukkit.CloudBukkitCapabilities;
-import cloud.commandframework.execution.AsynchronousCommandExecutionCoordinator;
-import cloud.commandframework.paper.PaperCommandManager;
 import com.vestriamc.basiclore.commands.LoreCommand;
 import com.vestriamc.basiclore.listeners.BlockPlaceEventListener;
 import com.vestriamc.basiclore.listeners.EntityShootBowEventListener;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.NamespacedKey;
-import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.incendo.cloud.CommandManager;
+import org.incendo.cloud.execution.ExecutionCoordinator;
+import org.incendo.cloud.paper.PaperCommandManager;
+import org.incendo.cloud.paper.util.sender.PaperSimpleSenderMapper;
+import org.incendo.cloud.paper.util.sender.Source;
 
 import java.util.logging.Logger;
 
@@ -30,13 +30,14 @@ public final class BasicLore extends JavaPlugin {
         loreKey = new NamespacedKey(this, "lore_key");
 
         //register commands
-        CommandManager<CommandSender> commandManager = this.createCommandManager();
-        commandManager.registerCommandPostProcessor(new LoreCommand.HeldItemPostProcessor());
+        CommandManager<Source> manager = PaperCommandManager.builder(PaperSimpleSenderMapper.simpleSenderMapper())
+                .executionCoordinator(ExecutionCoordinator.asyncCoordinator())
+                .buildOnEnable(this);
 
         //todo: implement suggestions for edit and rename command
         // to populate deserialized pre-existing text for tab completion.
 
-        new LoreCommand().register(commandManager);
+        new LoreCommand().register(manager);
 
         //register listeners
         PluginManager pm = this.getServer().getPluginManager();
@@ -45,24 +46,4 @@ public final class BasicLore extends JavaPlugin {
 
     }
 
-    private CommandManager<CommandSender> createCommandManager() {
-        PaperCommandManager<CommandSender> commandManager;
-
-        try {
-            commandManager = PaperCommandManager.createNative(
-                    this, AsynchronousCommandExecutionCoordinator
-                            .<CommandSender>builder()
-                            .withAsynchronousParsing().build()
-            );
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        if (commandManager.hasCapability(CloudBukkitCapabilities.ASYNCHRONOUS_COMPLETION)) {
-            commandManager.registerAsynchronousCompletions();
-        }
-
-        return commandManager;
-
-    }
 }
