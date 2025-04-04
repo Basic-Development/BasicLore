@@ -1,5 +1,6 @@
 package com.vestriamc.basiclore.listeners;
 
+import com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent;
 import com.vestriamc.basiclore.BasicLore;
 import com.vestriamc.basiclore.utils.Messages;
 import org.bukkit.entity.Player;
@@ -34,6 +35,24 @@ public final class EntityShootBowEventListener implements Listener {
 
         if (pdc.has(BasicLore.loreKey)) {
             player.sendMessage(Messages.cannotFireLoreArrows());
+            event.setCancelled(true);
+        }
+
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    private void onPlayerLaunchProjectileEvent(final PlayerLaunchProjectileEvent event) {
+
+        Player player = event.getPlayer();
+
+        ItemStack projectileItem = event.getItemStack();
+
+        ItemMeta meta = projectileItem.getItemMeta();
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+
+        if (pdc.has(BasicLore.loreKey)) {
+            player.sendMessage(Messages.cannotFireLoreArrows());
+            event.setShouldConsume(false);
             event.setCancelled(true);
         }
 
