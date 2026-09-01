@@ -51,19 +51,21 @@ tasks {
     }
 
     shadowJar {
+        relocate("org.incendo.cloud", "${project.group}.libs.cloud")
+
         archiveClassifier.set(null as String?)
         archiveFileName.set(project.name + ".jar")
     }
 
     runServer {
-        minecraftVersion("26.2.1")
+        minecraftVersion("26.1.2")
 
         downloadPlugins {
             github("MilkBowl", "Vault", "1.7.3", "Vault.jar")
             github("EssentialsX", "Essentials", "2.22.0", "EssentialsX-2.22.0.jar")
             hangar("ViaVersion", "5.11.0")
             hangar("ViaBackwards", "5.11.0")
-            modrinth("luckperms", "v5.5.81-bukkit")
+            modrinth("luckperms", "v5.5.71-bukkit")
         }
     }
 }
@@ -75,7 +77,7 @@ paperPluginYaml {
 
     dependencies {
         server("Vault", Load.BEFORE, required = true)
-        server("EssentialsX", Load.BEFORE, required = true)
+        server("Essentials", Load.BEFORE, required = true)
         server("LuckPerms", Load.BEFORE, required = true)
     }
 }
