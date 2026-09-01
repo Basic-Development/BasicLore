@@ -1,319 +1,339 @@
 package com.vestriamc.basiclore.commands;
 
 import com.vestriamc.basiclore.BasicLore;
-import com.vestriamc.basiclore.utils.FormatUtil;
 import com.vestriamc.basiclore.utils.Messages;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.text.format.TextDecoration;
-import org.bukkit.Material;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.enchantments.Enchantment;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-import org.jetbrains.annotations.NotNull;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.framework.qual.DefaultQualifier;
+import org.incendo.cloud.Command;
+import org.incendo.cloud.CommandManager;
+import org.incendo.cloud.context.CommandContext;
+import org.incendo.cloud.minecraft.extras.MinecraftHelp;
+import org.incendo.cloud.paper.util.sender.PlayerSource;
+import org.incendo.cloud.paper.util.sender.Source;
+import org.incendo.cloud.parser.standard.BooleanParser;
+import org.incendo.cloud.parser.standard.IntegerParser;
+import org.incendo.cloud.parser.standard.StringParser;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
-@SuppressWarnings("deprecation")
-public final class LoreCommand implements CommandExecutor {
-    @Override
-    public boolean onCommand(@NotNull final CommandSender sender,
-                             @NotNull final Command command,
-                             @NotNull final String label,
-                             @NotNull final String[] args) {
+import static net.kyori.adventure.text.format.TextDecoration.ITALIC;
+import static net.kyori.adventure.text.format.TextDecoration.State.FALSE;
 
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(Messages.errConsoleSender());
-            return true;
-        }
+@DefaultQualifier(NonNull.class)
+public final class LoreCommand {
 
-        if (args.length == 0) {
-            this.help(player);
-            return true;
-        }
+    private static final LegacyComponentSerializer SERIALIZER = LegacyComponentSerializer
+            .builder()
+            .character('&')
+            .hexColors()
+            .hexCharacter('#')
+            .build();
 
-        String subcommand = args[0];
-        if (subcommand.equalsIgnoreCase("help") || subcommand.equalsIgnoreCase("?")) {
-            this.help(player);
-            return true;
-        }
+    public void register(final CommandManager<Source> manager) {
 
-        // Validate their command based on the acceptable subcommand arguments
-        List<String> validLoreCommands = new ArrayList<>();
-        validLoreCommands.add("add");
-        validLoreCommands.add("remove");
-        validLoreCommands.add("edit");
-        validLoreCommands.add("rename");
-        validLoreCommands.add("unname");
-        validLoreCommands.add("glow");
-        validLoreCommands.add("unglow");
-        validLoreCommands.add("tag");
+        Command.Builder<Source> baseCommand = manager
+                .commandBuilder("lore");
 
-        if (!validLoreCommands.contains(subcommand)) {
-            player.sendMessage(Messages.errInvalidArgument("Lore Command", subcommand));
-            return true;
-        }
+        manager.command(
+                baseCommand
+                        .senderType(PlayerSource.class)
+                        .literal("add")
+                        .permission("lore.add")
+                        .required("text", StringParser.greedyStringParser())
+                        .handler(this::handleAdd)
+        );
 
-        //They must hold an item to apply lore to
+        manager.command(
+                baseCommand
+                        .senderType(PlayerSource.class)
+                        .literal("remove")
+                        .permission("lore.remove")
+                        .required("line", IntegerParser.integerParser())
+                        .handler(this::handleRemove)
+        );
+
+        manager.command(
+                baseCommand
+                        .senderType(PlayerSource.class)
+                        .literal("edit")
+                        .permission("lore.edit")
+                        .required("line", IntegerParser.integerParser())
+                        .required("text", StringParser.greedyStringParser())
+                        .handler(this::handleEdit)
+        );
+
+        manager.command(
+                baseCommand
+                        .senderType(PlayerSource.class)
+                        .literal("rename")
+                        .permission("lore.rename")
+                        .required("text", StringParser.greedyStringParser())
+                        .handler(this::handleRename)
+        );
+
+        manager.command(
+                baseCommand
+                        .senderType(PlayerSource.class)
+                        .literal("removename", "unname")
+                        .permission("lore.unname")
+                        .handler(this::handleRemoveName)
+        );
+
+        manager.command(
+                baseCommand
+                        .senderType(PlayerSource.class)
+                        .literal("glow")
+                        .optional("value", BooleanParser.booleanParser())
+                        .permission("lore.glow")
+                        .handler(this::handleGlow)
+        );
+
+        manager.command(
+                baseCommand
+                        .senderType(PlayerSource.class)
+                        .literal("hideeffects")
+                        .optional("value", BooleanParser.booleanParser())
+                        .permission("lore.hideeffects")
+                        .handler(this::handleEffects)
+        );
+
+        manager.command(
+                baseCommand
+                        .senderType(PlayerSource.class)
+                        .literal("tag")
+                        .optional("tag", StringParser.greedyStringParser())
+                        .permission("lore.tag")
+                        .handler(this::handleTag)
+        );
+
+        MinecraftHelp<Source> minecraftHelp = MinecraftHelp.create(
+                "/lore help",
+                manager,
+                Source::source
+        );
+
+        manager.command(
+                baseCommand
+                        .literal("help")
+                        .permission("message.command.help")
+                        .handler((ctx) -> minecraftHelp.queryCommands("", ctx.sender()))
+        );
+
+
+    }
+
+    private void handleAdd(final CommandContext<PlayerSource> context) {
+
+        Player player = context.sender().source();
+
+        //Ensure the player is holding an item in their hand
         ItemStack item = player.getInventory().getItemInMainHand();
-        if (item.getType() == Material.AIR) {
-            player.sendMessage(Messages.errNoHeldItem());
-            return true;
-        }
         ItemMeta meta = item.getItemMeta();
-        if (meta == null) {
-            player.sendMessage(Messages.errNoItemMeta());
-            return true;
-        }
 
-        switch (subcommand) {
-            case ("add") -> {
+        String inputText = context.get("text");
+        Component line = SERIALIZER.deserialize(inputText).decorationIfAbsent(ITALIC, FALSE);
 
-                if (!player.hasPermission("lore.add")) {
-                    sender.sendMessage(Messages.errNoPermission());
-                    return true;
-                }
+        List<Component> lore = Objects.requireNonNullElse(meta.lore(), new ArrayList<>());
 
-                List<String> lore = meta.getLore();
-                if (lore == null) {
-                    lore = new ArrayList<>();
-                }
+        lore.add(line);
 
-                String unformattedLoreLine = FormatUtil.getInputAfterIndex(args, 0);
-                if (unformattedLoreLine.isBlank() || unformattedLoreLine.isEmpty()) {
-                    player.sendMessage(Messages.errMissingArgument("Item Lore"));
-                    return true;
-                }
-                String formattedLoreLine = FormatUtil.formatInputLegacy(unformattedLoreLine);
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
 
-                lore.add(formattedLoreLine);
-                meta.setLore(lore);
+        meta.lore(lore);
+        item.setItemMeta(meta);
 
-                PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
+        player.sendMessage(Messages.infoAddedLore(line));
 
-                item.setItemMeta(meta);
-                sender.sendMessage(Messages.infoAddedLore(formattedLoreLine));
-                return true;
-            }
-            case ("remove") -> { //lore remove <lineNum>
-
-                if (!player.hasPermission("lore.remove")) {
-                    sender.sendMessage(Messages.errNoPermission());
-                    return true;
-                }
-
-                int lineToEdit = 0;
-                try {
-                    lineToEdit = Integer.parseInt(args[1]);
-                } catch (Exception e) {
-                    sender.sendMessage(Messages.errInvalidArgument("line number", args[1]));
-                    return true;
-                }
-                List<String> lore = meta.getLore();
-                if (lore == null) {
-                    sender.sendMessage(Messages.errNoLoreToRemove());
-                    return true;
-                }
-                if (lineToEdit > lore.size()) {
-                    sender.sendMessage(Messages.errNoLoreAtLine(lineToEdit));
-                    return true;
-                }
-                String oldLoreLine = lore.get(lineToEdit - 1);
-                lore.remove(lineToEdit - 1);
-                meta.setLore(lore);
-                item.setItemMeta(meta);
-                sender.sendMessage(Messages.infoRemovedLore(lineToEdit, oldLoreLine));
-                return true;
-
-            }
-            case ("edit") -> { //lore edit <lineNum> <newLineOfLore>
-
-                if (!player.hasPermission("lore.edit")) {
-                    sender.sendMessage(Messages.errNoPermission());
-                    return true;
-                }
-
-                int lineToEdit = 0;
-                try {
-                    lineToEdit = Integer.parseInt(args[1]);
-                } catch (Exception e) {
-                    sender.sendMessage(Messages.errInvalidArgument("line number", args[1]));
-                    return true;
-                }
-                List<String> lore = meta.getLore();
-                if (lore == null) {
-                    sender.sendMessage(Messages.errNoLoreToEdit());
-                    return true;
-                }
-                if (lineToEdit > lore.size()) {
-                    sender.sendMessage(Messages.errNoLoreAtLine(lineToEdit));
-                    return true;
-                }
-
-                String unformattedLoreLine = FormatUtil.getInputAfterIndex(args, 1);
-                if (unformattedLoreLine.isBlank() || unformattedLoreLine.isEmpty()) {
-                    player.sendMessage(Messages.errMissingArgument("Item Lore"));
-                    return true;
-                }
-                String formattedLoreLine = FormatUtil.formatInputLegacy(unformattedLoreLine);
-
-                String oldLoreLine = lore.get(lineToEdit - 1);
-                lore.set(lineToEdit - 1, formattedLoreLine);
-                meta.setLore(lore);
-                item.setItemMeta(meta);
-                sender.sendMessage(Messages.infoEditedLore(oldLoreLine, formattedLoreLine));
-                return true;
-
-            }
-            case ("rename") -> { //lore rename <newItemName>
-
-                if (!sender.hasPermission("lore.rename")) {
-                    sender.sendMessage(Messages.errNoPermission());
-                    return true;
-                }
-
-                String unformattedDisplayName = FormatUtil.getInputAfterIndex(args, 0);
-                if (unformattedDisplayName.isBlank() || unformattedDisplayName.isEmpty()) {
-                    player.sendMessage(Messages.errMissingArgument("Item Name"));
-                    return true;
-                }
-
-                String formattedDisplayName = FormatUtil.formatInputLegacy(unformattedDisplayName);
-                meta.setDisplayName(formattedDisplayName);
-
-                PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
-
-                item.setItemMeta(meta);
-
-                player.sendMessage(Messages.infoRenamedItem(formattedDisplayName));
-
-            }
-            case ("unname") -> { // lore unname
-
-                if (!player.hasPermission("lore.unname")) {
-                    player.sendMessage(Messages.errNoPermission());
-                    return true;
-                }
-
-                Component displayName = meta.displayName();
-                if (displayName == null) {
-                    sender.sendMessage(Messages.errNoNameToRemove());
-                    return true;
-                }
-                meta.displayName(null);
-                item.setItemMeta(meta);
-
-                player.sendMessage(Messages.infoRemovedItemName(displayName));
-            }
-            case ("glow") -> {
-
-                if (!sender.hasPermission("lore.glow")) {
-                    sender.sendMessage(Messages.errNoPermission());
-                    return true;
-                }
-
-                item.addUnsafeEnchantment(Enchantment.DURABILITY, 1);
-                item.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-
-                PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
-
-                item.setItemMeta(meta);
-
-                player.sendMessage(Messages.infoAddedGlowing());
-
-                return true;
-
-            }
-            case ("unglow") -> {
-
-                if (!sender.hasPermission("lore.glow")) {
-                    sender.sendMessage(Messages.errNoPermission());
-                    return true;
-                }
-
-                item.removeEnchantment(Enchantment.DURABILITY);
-                item.removeItemFlags(ItemFlag.HIDE_ENCHANTS);
-
-                player.sendMessage(Messages.infoRemovedGlowing());
-
-                return true;
-
-            }
-            case ("tag") -> {
-                if (!player.hasPermission("lore.tag")) {
-                    sender.sendMessage(Messages.errNoPermission());
-                    return true;
-                }
-
-                List<Component> lore = meta.lore();
-                if (lore == null) {
-                    lore = new ArrayList<>();
-                }
-                lore.add(Messages.separator());
-
-                if (args.length >= 2) {
-                    meta.lore(lore);
-                    item.setItemMeta(meta);
-
-                    ItemMeta im = item.getItemMeta();
-                    List<String> itemLore = im.getLore();
-                    if (itemLore == null) {
-                        player.sendMessage(Messages.errNoItemMeta());
-                        return true;
-                    }
-
-                    String unformattedLoreLine = FormatUtil.getInputAfterIndex(args, 0);
-                    String formattedLoreLine = FormatUtil.formatInputLegacy(unformattedLoreLine);
-                    itemLore.add(formattedLoreLine);
-                    im.setLore(itemLore);
-
-                    PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                    pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
-
-                    item.setItemMeta(im);
-
-                    player.sendMessage(Messages.infoAddedLore(formattedLoreLine));
-
-                    return true;
-
-                }
-
-                Year year = Year.now();
-
-                Component formattedLoreLine = Component.text("Vestria " + year, TextColor.color(0x720077))
-                        .decoration(TextDecoration.ITALIC, false)
-                        .decoration(TextDecoration.BOLD, true);
-
-                lore.add(formattedLoreLine);
-                meta.lore(lore);
-                item.setItemMeta(meta);
-
-                player.sendMessage(Messages.infoAddedLore(formattedLoreLine));
-
-            }
-            default -> {
-                this.help(player);
-            }
-        }
-        return true;
     }
 
-    public void help(@NotNull final Player player) {
-        List<Component> helpMessages = Messages.help(player);
-        for (Component c : helpMessages) {
-            player.sendMessage(c);
+    private void handleRemove(final CommandContext<PlayerSource> context) {
+
+        Player player = context.sender().source();
+
+
+        int lineNumber = context.get("line");
+
+        ItemStack item = player.getInventory().getItemInMainHand();
+        ItemMeta meta = item.getItemMeta();
+
+        List<Component> lore = Objects.requireNonNullElse(meta.lore(), new ArrayList<>());
+
+        int numLines = lore.size();
+        if (lineNumber < 0 || lineNumber > numLines) {
+            player.sendMessage(Messages.errNoLoreAtLine(lineNumber));
+            return;
         }
+
+        Component oldLoreLine = lore.get(lineNumber - 1);
+        lore.remove(lineNumber - 1);
+        meta.lore(lore);
+        item.setItemMeta(meta);
+
+        player.sendMessage(Messages.infoRemovedLore(lineNumber, oldLoreLine));
+
     }
+
+    private void handleEdit(final CommandContext<PlayerSource> context) {
+
+        Player player = context.sender().source();
+
+        ItemStack item = player.getInventory().getItemInMainHand();
+        ItemMeta meta = item.getItemMeta();
+        List<Component> lore = Objects.requireNonNullElse(meta.lore(), new ArrayList<>());
+
+
+        int line = context.get("line");
+        String newText = context.get("text");
+
+        if (line < 0 || line > lore.size()) {
+            player.sendMessage(Messages.errNoLoreAtLine(line));
+            return;
+        }
+
+        Component newLore = SERIALIZER.deserialize(newText).decorationIfAbsent(ITALIC, FALSE);
+
+        Component previousLore = lore.get(line - 1);
+        lore.set(line - 1, newLore);
+
+        meta.lore(lore);
+        item.setItemMeta(meta);
+
+        player.sendMessage(Messages.infoEditedLore(previousLore, newLore));
+    }
+
+    //renames an item and also tags it as a Lore item, so that it can be prevented from being placed.
+    private void handleRename(final CommandContext<PlayerSource> context) {
+
+        Player player = context.sender().source();
+
+        ItemStack item = player.getInventory().getItemInMainHand();
+        ItemMeta meta = item.getItemMeta();
+
+        String name = context.get("text");
+        Component displayName = SERIALIZER.deserialize(name).decorationIfAbsent(ITALIC, FALSE);
+
+        meta.displayName(displayName);
+
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
+
+        item.setItemMeta(meta);
+
+        player.sendMessage(Messages.infoRenamedItem(displayName));
+
+    }
+
+    private void handleRemoveName(final CommandContext<PlayerSource> context) {
+
+        Player player = context.sender().source();
+
+        ItemStack item = player.getInventory().getItemInMainHand();
+        ItemMeta meta = item.getItemMeta();
+
+        @Nullable Component displayName = meta.displayName();
+        if (displayName == null) {
+            player.sendMessage(Messages.errNoNameToRemove());
+            return;
+        }
+
+        meta.displayName(null);
+        item.setItemMeta(meta);
+
+        player.sendMessage(Messages.infoRemovedItemName(displayName));
+
+    }
+
+    //Adds Unbreaking 1 and hides enchants on an item, and tags it as a Lore item.
+    private void handleGlow(final CommandContext<PlayerSource> context) {
+
+        Player player = context.sender().source();
+        ItemStack item = player.getInventory().getItemInMainHand();
+        ItemMeta meta = item.getItemMeta();
+
+        boolean doSetGlowing = context.getOrDefault("value", true);
+
+        if (doSetGlowing) {
+
+            PersistentDataContainer pdc = meta.getPersistentDataContainer();
+            pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
+
+            meta.setEnchantmentGlintOverride(true);
+
+            item.setItemMeta(meta);
+
+            player.sendMessage(Messages.infoAddedGlowing());
+
+        } else {
+
+
+            meta.setEnchantmentGlintOverride(false);
+            item.setItemMeta(meta);
+
+            player.sendMessage(Messages.infoRemovedGlowing());
+
+        }
+
+    }
+
+    private void handleEffects(final CommandContext<PlayerSource> context) {
+
+        Player player = context.sender().source();
+        ItemStack item = player.getInventory().getItemInMainHand();
+
+        boolean doHideEffects = context.getOrDefault("value", true);
+
+        if (doHideEffects) {
+            item.addItemFlags(ItemFlag.HIDE_STORED_ENCHANTS);
+            item.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            item.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            player.sendMessage(Messages.infoHidEffects());
+
+        } else {
+            item.addItemFlags(ItemFlag.HIDE_STORED_ENCHANTS);
+            item.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            item.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            player.sendMessage(Messages.infoUnHidEffects());
+
+        }
+
+    }
+
+    private void handleTag(final CommandContext<PlayerSource> context) {
+
+        Player player = context.sender().source();
+
+        ItemStack item = player.getInventory().getItemInMainHand();
+        ItemMeta meta = item.getItemMeta();
+        List<Component> lore = Objects.requireNonNullElse(meta.lore(), new ArrayList<>());
+
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        pdc.set(BasicLore.loreKey, PersistentDataType.STRING, "LORE");
+
+        lore.add(Messages.separator());
+
+        String tagString = context.getOrDefault("tag", "&#efb8ff&lVestria " + Year.now());
+        Component tag = SERIALIZER.deserialize(tagString).decorationIfAbsent(ITALIC, FALSE);
+
+        lore.add(tag);
+        meta.lore(lore);
+        item.setItemMeta(meta);
+
+        player.sendMessage(Messages.infoAddedLore(Messages.separator()));
+        player.sendMessage(Messages.infoAddedLore(tag));
+
+    }
+
 }
