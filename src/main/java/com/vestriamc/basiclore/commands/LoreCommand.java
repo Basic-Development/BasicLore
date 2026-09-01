@@ -296,11 +296,15 @@ public final class LoreCommand {
         boolean doHideEffects = context.getOrDefault("value", true);
 
         if (doHideEffects) {
-            item.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+            item.addItemFlags(ItemFlag.HIDE_STORED_ENCHANTS);
+            item.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            item.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             player.sendMessage(Messages.infoHidEffects());
 
         } else {
-            item.removeItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
+            item.addItemFlags(ItemFlag.HIDE_STORED_ENCHANTS);
+            item.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            item.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             player.sendMessage(Messages.infoUnHidEffects());
 
         }

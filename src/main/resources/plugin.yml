@@ -1,5 +1,0 @@
-name: $name
-version: $version
-main: com.vestriamc.basiclore.BasicLore
-api-version: 1.21
-author: GeneralSarcasam
